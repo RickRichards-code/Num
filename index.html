@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Métodos Iterativos — DAT-243</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+/* ── Variables ─────────────────────────────────────────── */
+:root {
+  --bg:        #0a0e1a;
+  --bg2:       #111827;
+  --bg3:       #1a2235;
+  --card:      #151d2e;
+  --border:    #1e2d45;
+  --accent1:   #3b82f6;
+  --accent2:   #10b981;
+  --accent3:   #8b5cf6;
+  --accent4:   #f59e0b;
+  --text:      #e2e8f0;
+  --text2:     #94a3b8;
+  --text3:     #64748b;
+  --gs:        #3b82f6;
+  --sor:       #10b981;
+  --cg:        #8b5cf6;
+  --danger:    #ef4444;
+  --success:   #22c55e;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-main: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-disp: 'Space Mono', monospace;
+}
+
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-main);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Import Fonts ──────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Grid Background ──────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+header {
+  position: relative;
+  padding: 3rem 2rem 2rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(59,130,246,.06) 0%, transparent 100%);
+}
+.header-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--accent1);
+  background: rgba(59,130,246,.12);
+  border: 1px solid rgba(59,130,246,.3);
+  border-radius: 4px;
+  padding: .3rem .8rem;
+  margin-bottom: 1.2rem;
+}
+header h1 {
+  font-family: var(--font-disp);
+  font-size: clamp(1.5rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  margin-bottom: .6rem;
+}
+header h1 span { color: var(--accent1); }
+header p {
+  color: var(--text2);
+  font-size: .95rem;
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ── Nav Tabs ─────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: .4rem;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  background: var(--bg2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.tab {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  padding: .5rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.tab:hover { border-color: var(--accent1); color: var(--text); }
+.tab.active {
+  background: rgba(59,130,246,.15);
+  border-color: var(--accent1);
+  color: var(--accent1);
+}
+
+/* ── Main Layout ──────────────────────────────────────── */
+main { max-width: 1300px; margin: 0 auto; padding: 2rem; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── Cards ────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.card-title {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.card-title::before {
+  content: '';
+  display: block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent1);
+}
+
+/* ── Grid 2 cols ──────────────────────────────────────── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 900px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+
+/* ── Size Selector ────────────────────────────────────── */
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+.size-row label { color: var(--text2); font-size: .9rem; }
+.size-input {
+  width: 80px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: .4rem .6rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: .9rem;
+  text-align: center;
+}
+.btn {
+  padding: .5rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  transition: all .2s;
+}
+.btn-primary { background: var(--accent1); color: #fff; }
+.btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+.btn-secondary { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent1); color: var(--text); }
+.btn-success { background: var(--accent2); color: #fff; }
+.btn-success:hover { background: #059669; }
+.btn-danger  { background: var(--danger); color: #fff; }
+.btn-group { display: flex; gap: .6rem; flex-wrap: wrap; }
+
+/* ── Matrix Input Grid ────────────────────────────────── */
+.matrix-scroll { overflow-x: auto; }
+.matrix-grid {
+  display: grid;
+  gap: 3px;
+}
+.mat-cell {
+  width: 72px; height: 36px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  border-radius: 4px;
+  transition: border-color .15s;
+}
+.mat-cell:focus {
+  outline: none;
+  border-color: var(--accent1);
+  background: rgba(59,130,246,.08);
+}
+.mat-cell.diag { border-color: rgba(59,130,246,.4); }
+.vec-grid { display: flex; flex-direction: column; gap: 3px; }
+.vec-cell {
+  width: 90px; height: 36px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  border-radius: 4px;
+  transition: border-color .15s;
+}
+.vec-cell:focus { outline: none; border-color: var(--accent2); background: rgba(16,185,129,.08); }
+
+/* ── CSV Upload ───────────────────────────────────────── */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  color: var(--text3);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent1);
+  background: rgba(59,130,246,.05);
+  color: var(--text2);
+}
+.drop-zone svg { margin-bottom: .8rem; opacity: .5; }
+.drop-zone p { font-size: .9rem; }
+.drop-zone small { font-size: .75rem; font-family: var(--font-mono); }
+
+/* ── Parameters ────────────────────────────────────────── */
+.param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.param-row:last-child { border-bottom: none; }
+.param-label { color: var(--text2); font-size: .9rem; }
+.param-label code {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  color: var(--accent4);
+  background: rgba(245,158,11,.1);
+  padding: .1rem .4rem;
+  border-radius: 3px;
+}
+.param-input {
+  width: 100px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: .35rem .6rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: .85rem;
+  text-align: right;
+}
+.param-input:focus { outline: none; border-color: var(--accent4); }
+.toggle-group { display: flex; gap: .4rem; }
+.toggle {
+  padding: .3rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  transition: all .15s;
+}
+.toggle.on { background: rgba(16,185,129,.15); border-color: var(--accent2); color: var(--accent2); }
+
+/* ── Run Button ───────────────────────────────────────── */
+.run-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(90deg, rgba(59,130,246,.08), transparent);
+  border: 1px solid rgba(59,130,246,.2);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+.btn-run {
+  padding: .8rem 2.5rem;
+  background: linear-gradient(135deg, var(--accent1), #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: .9rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.btn-run:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,.3); }
+.btn-run:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+#status-msg { font-family: var(--font-mono); font-size: .85rem; color: var(--text2); }
+
+/* ── Stat Cards ───────────────────────────────────────── */
+.stat-card {
+  padding: 1.2rem;
+  border-radius: 10px;
+  border: 1px solid;
+  text-align: center;
+  transition: transform .2s;
+}
+.stat-card:hover { transform: translateY(-3px); }
+.stat-card.gs  { border-color: rgba(59,130,246,.4);  background: rgba(59,130,246,.08); }
+.stat-card.sor { border-color: rgba(16,185,129,.4);  background: rgba(16,185,129,.08); }
+.stat-card.cg  { border-color: rgba(139,92,246,.4);  background: rgba(139,92,246,.08); }
+.stat-label { font-family: var(--font-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--text3); margin-bottom: .5rem; }
+.stat-iters { font-family: var(--font-disp); font-size: 2.4rem; font-weight: 700; line-height: 1; }
+.stat-card.gs  .stat-iters { color: var(--gs); }
+.stat-card.sor .stat-iters { color: var(--sor); }
+.stat-card.cg  .stat-iters { color: var(--cg); }
+.stat-err { font-family: var(--font-mono); font-size: .72rem; color: var(--text2); margin-top: .4rem; }
+.winner-badge {
+  display: inline-block;
+  background: var(--accent4);
+  color: #000;
+  font-family: var(--font-mono);
+  font-size: .65rem;
+  font-weight: 700;
+  padding: .15rem .5rem;
+  border-radius: 3px;
+  margin-top: .4rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+/* ── Plotly container ─────────────────────────────────── */
+.plot-container {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+.plot-title {
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  color: var(--text3);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: .8rem;
+}
+
+/* ── Tables ───────────────────────────────────────────── */
+.table-tabs { display: flex; gap: .4rem; margin-bottom: 1rem; }
+.tbl-tab {
+  padding: .35rem .9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  transition: all .15s;
+}
+.tbl-tab.active.gs  { background: rgba(59,130,246,.15); border-color: var(--gs);  color: var(--gs); }
+.tbl-tab.active.sor { background: rgba(16,185,129,.15); border-color: var(--sor); color: var(--sor); }
+.tbl-tab.active.cg  { background: rgba(139,92,246,.15); border-color: var(--cg);  color: var(--cg); }
+.tbl-tab.active.cmp { background: rgba(245,158,11,.15); border-color: var(--accent4); color: var(--accent4); }
+.table-wrap { overflow-x: auto; max-height: 480px; overflow-y: auto; }
+.iter-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+}
+.iter-table th {
+  position: sticky; top: 0;
+  background: var(--bg2);
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .68rem;
+  padding: .6rem .8rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+.iter-table th:first-child { text-align: center; }
+.iter-table td {
+  padding: .45rem .8rem;
+  text-align: right;
+  color: var(--text2);
+  border-bottom: 1px solid rgba(30,45,69,.6);
+}
+.iter-table td:first-child { text-align: center; color: var(--text3); }
+.iter-table tr:hover td { background: rgba(59,130,246,.04); }
+.iter-table tr.conv-row td { color: var(--success); font-weight: 600; }
+.iter-table tr.conv-row td:first-child { color: var(--success); }
+
+/* ── Comparison Table ─────────────────────────────────── */
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+}
+.cmp-table th {
+  padding: .8rem 1rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--border);
+}
+.cmp-table th:first-child { text-align: left; }
+.cmp-table th.gs-h  { color: var(--gs);  background: rgba(59,130,246,.08); }
+.cmp-table th.sor-h { color: var(--sor); background: rgba(16,185,129,.08); }
+.cmp-table th.cg-h  { color: var(--cg);  background: rgba(139,92,246,.08); }
+.cmp-table td { padding: .7rem 1rem; border-bottom: 1px solid var(--border); }
+.cmp-table td:not(:first-child) { text-align: center; font-family: var(--font-mono); font-size: .82rem; }
+.cmp-table tr:hover td { background: rgba(255,255,255,.02); }
+.best { color: var(--success); font-weight: 700; }
+.worst { color: var(--danger); }
+
+/* ── Solution Table ───────────────────────────────────── */
+.sol-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: .82rem;
+}
+.sol-table th {
+  padding: .6rem .8rem;
+  text-align: right;
+  color: var(--text3);
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg2);
+}
+.sol-table th:first-child { text-align: left; }
+.sol-table td { padding: .5rem .8rem; border-bottom: 1px solid rgba(30,45,69,.5); text-align: right; }
+.sol-table td:first-child { text-align: left; color: var(--accent4); }
+.sol-table tr:hover td { background: rgba(59,130,246,.04); }
+
+/* ── Alert / Info ─────────────────────────────────────── */
+.alert {
+  padding: .8rem 1rem;
+  border-radius: 8px;
+  font-size: .85rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+}
+.alert-info  { background: rgba(59,130,246,.1);  border: 1px solid rgba(59,130,246,.3);  color: #93c5fd; }
+.alert-warn  { background: rgba(245,158,11,.1);  border: 1px solid rgba(245,158,11,.3);  color: #fcd34d; }
+.alert-error { background: rgba(239,68,68,.1);   border: 1px solid rgba(239,68,68,.3);   color: #fca5a5; }
+.alert-ok    { background: rgba(34,197,94,.1);   border: 1px solid rgba(34,197,94,.3);   color: #86efac; }
+
+/* ── Footer ───────────────────────────────────────────── */
+footer {
+  text-align: center;
+  padding: 2rem;
+  border-top: 1px solid var(--border);
+  color: var(--text3);
+  font-size: .8rem;
+  font-family: var(--font-mono);
+}
+footer span { color: var(--accent1); }
+
+/* ── Spinner ──────────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: var(--accent1);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Progress bar ─────────────────────────────────────── */
+.progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: .5rem;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent1), var(--accent3));
+  transition: width .3s;
+}
+
+/* ── Info box ─────────────────────────────────────────── */
+.info-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.info-box p { font-size: .85rem; color: var(--text2); line-height: 1.6; margin-bottom: .5rem; }
+.info-box p:last-child { margin-bottom: 0; }
+.info-box code {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  background: rgba(59,130,246,.1);
+  padding: .1rem .4rem;
+  border-radius: 3px;
+  color: var(--accent1);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">DAT-243 · Métodos Numéricos · UMSA</div>
+  <h1>Métodos <span>Iterativos</span><br>para Sistemas Lineales</h1>
+  <p>Gauss-Seidel · SOR · Gradiente Conjugado — Resolución interactiva,
+     animación de convergencia y comparativa paso a paso</p>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" onclick="showSection('entrada')">① Entrada de datos</button>
+  <button class="tab" onclick="showSection('parametros')">② Parámetros</button>
+  <button class="tab" onclick="showSection('resultados')">③ Resultados</button>
+  <button class="tab" onclick="showSection('convergencia')">④ Convergencia</button>
+  <button class="tab" onclick="showSection('iteraciones')">⑤ Iteraciones</button>
+  <button class="tab" onclick="showSection('comparativa')">⑥ Comparativa</button>
+</nav>
+
+<main>
+
+<!-- ════════════════════════════════════════════════════
+     SECCIÓN 1: ENTRADA DE DATOS
+═══════════════════════════════════════════════════════ -->
+<section id="entrada" class="section active">
+
+  <div class="card">
+    <div class="card-title">Tamaño del sistema</div>
+    <div class="size-row">
+      <label>Número de ecuaciones <em>n</em> =</label>
+      <input type="number" id="n-input" class="size-input" value="12" min="2" max="30">
+      <button class="btn btn-primary" onclick="buildGrid()">Generar grilla</button>
+      <button class="btn btn-secondary" onclick="loadExample()">Cargar ejemplo (circuito 12×12)</button>
+      <button class="btn btn-secondary" onclick="loadExample5()">Ejemplo 5×5</button>
+    </div>
+    <div class="alert alert-info">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Ingresa la matriz <strong>A</strong> y el vector <strong>b</strong> manualmente,
+      o carga un archivo CSV. Las celdas de la diagonal se resaltan en azul.
+    </div>
+  </div>
+
+  <!-- CSV Upload -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Cargar matriz A desde CSV</div>
+      <div class="drop-zone" id="drop-matrix" onclick="document.getElementById('file-matrix').click()">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>Arrastra o haz clic para subir</p>
+        <small>CSV: n filas × n columnas, valores separados por comas</small>
+      </div>
+      <input type="file" id="file-matrix" accept=".csv" style="display:none" onchange="loadCSVMatrix(this)">
+      <div id="csv-matrix-status" style="margin-top:.6rem;font-size:.8rem;color:var(--text3);font-family:var(--font-mono)"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cargar vector b desde CSV</div>
+      <div class="drop-zone" id="drop-vector" onclick="document.getElementById('file-vector').click()">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>Arrastra o haz clic para subir</p>
+        <small>CSV: n valores en una fila o una columna</small>
+      </div>
+      <input type="file" id="file-vector" accept=".csv" style="display:none" onchange="loadCSVVector(this)">
+      <div id="csv-vector-status" style="margin-top:.6rem;font-size:.8rem;color:var(--text3);font-family:var(--font-mono)"></div>
+    </div>
+  </div>
+
+  <!-- Matrix + Vector Grid -->
+  <div class="card">
+    <div class="card-title">Matriz A y vector b — entrada manual</div>
+    <div style="display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--text3);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.08em">Matriz A (n × n)</div>
+        <div class="matrix-scroll"><div id="matrix-grid" class="matrix-grid"></div></div>
+      </div>
+      <div>
+        <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--text3);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.08em">Vector b</div>
+        <div class="vec-grid" id="vec-grid"></div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;" class="btn-group">
+      <button class="btn btn-secondary" onclick="clearAll()">Limpiar todo</button>
+      <button class="btn btn-secondary" onclick="fillZeros()">Rellenar ceros</button>
+      <button class="btn btn-secondary" onclick="downloadTemplate()">Descargar plantilla CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Validación del sistema</div>
+    <div id="validation-output">
+      <div class="alert alert-info">Ingresa los datos y presiona "Validar".</div>
+    </div>
+    <div class="btn-group" style="margin-top:1rem;">
+      <button class="btn btn-primary" onclick="validateSystem()">Validar sistema</button>
+      <button class="btn btn-success" onclick="showSection('parametros')">Siguiente →</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     SECCIÓN 2: PARÁMETROS
+═══════════════════════════════════════════════════════ -->
+<section id="parametros" class="section">
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Parámetros iterativos</div>
+      <div class="param-row">
+        <span class="param-label">Tolerancia <code>tol</code></span>
+        <input type="number" id="tol" class="param-input" value="1e-8" step="any">
+      </div>
+      <div class="param-row">
+        <span class="param-label">Máx. iteraciones <code>maxIter</code></span>
+        <input type="number" id="max-iter" class="param-input" value="500">
+      </div>
+      <div class="param-row">
+        <span class="param-label">Parámetro SOR <code>ω</code></span>
+        <input type="number" id="omega" class="param-input" value="1.25" min="0.01" max="1.99" step="0.01">
+      </div>
+      <div class="param-row">
+        <span class="param-label">Auto-calcular <code>ω_opt</code></span>
+        <div class="toggle-group">
+          <button id="auto-omega-btn" class="toggle on" onclick="toggleAutoOmega()">AUTO</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Métodos a ejecutar</div>
+      <div class="param-row">
+        <span class="param-label">Gauss-Seidel</span>
+        <button id="toggle-gs" class="toggle on" onclick="toggleMethod('gs')">Activo</button>
+      </div>
+      <div class="param-row">
+        <span class="param-label">SOR</span>
+        <button id="toggle-sor" class="toggle on" onclick="toggleMethod('sor')">Activo</button>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Gradiente Conjugado</span>
+        <button id="toggle-cg" class="toggle on" onclick="toggleMethod('cg')">Activo</button>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Solución exacta (referencia)</span>
+        <button id="toggle-exact" class="toggle on" onclick="toggleMethod('exact')">Activo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Punto de partida <code>x⁽⁰⁾</code></div>
+    <div class="param-row">
+      <span class="param-label">Inicialización del vector</span>
+      <select id="x0-mode" class="param-input" style="width:160px;text-align:left">
+        <option value="zeros">Todo ceros</option>
+        <option value="ones">Todo unos</option>
+        <option value="random">Aleatorio</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="run-section">
+    <button class="btn-run" id="run-btn" onclick="runAll()">▶ EJECUTAR CÁLCULO</button>
+    <div>
+      <div id="status-msg">Listo para ejecutar.</div>
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     SECCIÓN 3: RESULTADOS
+═══════════════════════════════════════════════════════ -->
+<section id="resultados" class="section">
+  <div id="results-placeholder" class="alert alert-warn">Ejecuta el cálculo primero.</div>
+  <div id="results-content" style="display:none">
+
+    <div class="grid3" id="stat-cards"></div>
+
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-title">Solución nodal completa</div>
+      <div class="table-wrap">
+        <table class="sol-table" id="sol-table">
+          <thead><tr id="sol-head"></tr></thead>
+          <tbody id="sol-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     SECCIÓN 4: CONVERGENCIA (Plotly animado)
+═══════════════════════════════════════════════════════ -->
+<section id="convergencia" class="section">
+  <div id="conv-placeholder" class="alert alert-warn">Ejecuta el cálculo primero.</div>
+  <div id="conv-content" style="display:none">
+
+    <div class="plot-container">
+      <div class="plot-title">Error relativo ‖e⁽ᵏ⁾‖ / ‖x*‖ vs Iteración — animado</div>
+      <div id="plot-conv" style="height:420px"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="plot-container">
+        <div class="plot-title">‖Δx‖∞ por iteración</div>
+        <div id="plot-delta" style="height:320px"></div>
+      </div>
+      <div class="plot-container">
+        <div class="plot-title">Reducción del error por iteración (factor)</div>
+        <div id="plot-factor" style="height:320px"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     SECCIÓN 5: TABLAS DE ITERACIONES
+═══════════════════════════════════════════════════════ -->
+<section id="iteraciones" class="section">
+  <div id="iter-placeholder" class="alert alert-warn">Ejecuta el cálculo primero.</div>
+  <div id="iter-content" style="display:none">
+    <div class="table-tabs">
+      <button class="tbl-tab active gs"  onclick="showIterTable('gs')" id="tbt-gs">Gauss-Seidel</button>
+      <button class="tbl-tab sor"         onclick="showIterTable('sor')" id="tbt-sor">SOR</button>
+      <button class="tbl-tab cg"          onclick="showIterTable('cg')" id="tbt-cg">Gradiente Conj.</button>
+    </div>
+    <div class="card" style="padding:.8rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;flex-wrap:wrap;gap:.5rem">
+        <div id="iter-table-title" style="font-family:var(--font-mono);font-size:.8rem;color:var(--text2)"></div>
+        <button class="btn btn-secondary" onclick="downloadIterTable()" style="font-size:.72rem;padding:.3rem .8rem">⬇ CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table class="iter-table">
+          <thead><tr id="iter-head"></tr></thead>
+          <tbody id="iter-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     SECCIÓN 6: COMPARATIVA
+═══════════════════════════════════════════════════════ -->
+<section id="comparativa" class="section">
+  <div id="cmp-placeholder" class="alert alert-warn">Ejecuta el cálculo primero.</div>
+  <div id="cmp-content" style="display:none">
+
+    <div class="plot-container">
+      <div class="plot-title">Comparativa de convergencia — todos los métodos</div>
+      <div id="plot-cmp" style="height:400px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Tabla comparativa de métricas</div>
+      <div class="table-wrap">
+        <table class="cmp-table" id="cmp-table">
+          <thead>
+            <tr>
+              <th>Métrica</th>
+              <th class="gs-h">Gauss-Seidel</th>
+              <th class="sor-h">SOR</th>
+              <th class="cg-h">Grad. Conjugado</th>
+            </tr>
+          </thead>
+          <tbody id="cmp-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-title">Análisis comparativo</div>
+      <div id="analysis-text"></div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>DAT-243 Métodos Numéricos · UMSA · 2026 ·
+  Estudiante: <span>Enrrique Julio Alvarado Mamani</span> · C.I. 13790384</p>
+</footer>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   ESTADO GLOBAL
+══════════════════════════════════════════════════════════ */
+let state = {
+  n: 12,
+  A: [],
+  b: [],
+  results: null,
+  autoOmega: true,
+  methods: { gs: true, sor: true, cg: true, exact: true },
+  currentIterTable: 'gs',
+};
+
+/* ══════════════════════════════════════════════════════════
+   NAVEGACIÓN
+══════════════════════════════════════════════════════════ */
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  const map = { entrada:0, parametros:1, resultados:2, convergencia:3, iteraciones:4, comparativa:5 };
+  tabs[map[id]].classList.add('active');
+}
+
+/* ══════════════════════════════════════════════════════════
+   CONSTRUCCIÓN DE LA GRILLA
+══════════════════════════════════════════════════════════ */
+function buildGrid(A, b) {
+  const n = parseInt(document.getElementById('n-input').value);
+  if (isNaN(n) || n < 2 || n > 30) { alert('n debe estar entre 2 y 30'); return; }
+  state.n = n;
+
+  // Matriz
+  const mg = document.getElementById('matrix-grid');
+  mg.style.gridTemplateColumns = `repeat(${n}, 72px)`;
+  mg.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.step = 'any';
+      inp.className = 'mat-cell' + (i===j?' diag':'');
+      inp.id = `a_${i}_${j}`;
+      inp.value = A ? (A[i][j] !== 0 ? A[i][j] : '') : '';
+      inp.placeholder = i===j?'*':'0';
+      mg.appendChild(inp);
+    }
+  }
+
+  // Vector
+  const vg = document.getElementById('vec-grid');
+  vg.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.step = 'any';
+    inp.className = 'vec-cell';
+    inp.id = `b_${i}`;
+    inp.value = b ? b[i] : '';
+    vg.appendChild(inp);
+  }
+}
+
+function readMatrix() {
+  const n = state.n;
+  const A = [], b = [];
+  for (let i = 0; i < n; i++) {
+    A.push([]);
+    for (let j = 0; j < n; j++) {
+      const v = parseFloat(document.getElementById(`a_${i}_${j}`).value);
+      A[i].push(isNaN(v) ? 0 : v);
+    }
+    const bv = parseFloat(document.getElementById(`b_${i}`).value);
+    b.push(isNaN(bv) ? 0 : bv);
+  }
+  return { A, b };
+}
+
+/* ══════════════════════════════════════════════════════════
+   EJEMPLOS PRECARGADOS
+══════════════════════════════════════════════════════════ */
+function loadExample() {
+  document.getElementById('n-input').value = 12;
+  const A = [
+    [0.188571,-0.1,0,0,-0.04,-0.028571,0,0,0,0,0,0],
+    [-0.1,0.260335,-0.066667,0,0,-0.045455,-0.035714,0,0,0,0,0],
+    [0,-0.066667,0.358066,-0.125,0,0,-0.090909,-0.058824,0,0,0,0],
+    [0,0,-0.125,0.292857,0,0,0,-0.142857,0,0,0,0],
+    [-0.04,0,0,0,0.209444,-0.083333,0,0,-0.033333,-0.041667,0,0],
+    [-0.028571,-0.045455,0,0,-0.083333,0.331764,-0.05,0,0,-0.0625,-0.047619,0],
+    [0,-0.035714,-0.090909,0,0,-0.05,0.449394,-0.166667,0,0,-0.052632,-0.03125],
+    [0,0,-0.058824,-0.142857,0,0,-0.166667,0.463452,0,0,0,-0.076923],
+    [0,0,0,0,-0.033333,0,0,0,0.104274,-0.055556,0,0],
+    [0,0,0,0,-0.041667,-0.0625,0,0,-0.055556,0.284167,-0.111111,0],
+    [0,0,0,0,0,-0.047619,-0.052632,0,0,-0.111111,0.294555,-0.071429],
+    [0,0,0,0,0,0,-0.03125,-0.076923,0,0,-0.071429,0.208173]
+  ];
+  const b = [2.0,0.5,1.5,-1.0,0.0,1.0,-0.5,0.0,3.0,0.0,-1.5,-2.5];
+  buildGrid(A, b);
+}
+
+function loadExample5() {
+  document.getElementById('n-input').value = 5;
+  const A = [
+    [10,-1,2,0,0],[-1,12,-2,1,0],[2,-2,11,-1,1],[0,1,-1,10,-2],[0,0,1,-2,9]
+  ];
+  const b = [14,21,32,29,40];
+  buildGrid(A, b);
+}
+
+/* ══════════════════════════════════════════════════════════
+   CSV IMPORT/EXPORT
+══════════════════════════════════════════════════════════ */
+function loadCSVMatrix(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const rows = e.target.result.trim().split('\n')
+        .map(r => r.split(/[,;\t]/).map(Number));
+      const n = rows.length;
+      document.getElementById('n-input').value = n;
+      state.n = n;
+      buildGrid(rows, state.b.length===n?state.b:null);
+      document.getElementById('csv-matrix-status').textContent =
+        `✔ Matriz ${n}×${n} cargada desde "${file.name}"`;
+    } catch(err) {
+      document.getElementById('csv-matrix-status').textContent = '✗ Error al leer CSV: ' + err.message;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function loadCSVVector(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const flat = e.target.result.trim().split(/[\n,;\t]/).map(Number).filter(v => !isNaN(v));
+      for (let i = 0; i < Math.min(flat.length, state.n); i++) {
+        const el = document.getElementById(`b_${i}`);
+        if (el) el.value = flat[i];
+      }
+      document.getElementById('csv-vector-status').textContent =
+        `✔ Vector (${flat.length} valores) cargado desde "${file.name}"`;
+    } catch(err) {
+      document.getElementById('csv-vector-status').textContent = '✗ Error: ' + err.message;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function downloadTemplate() {
+  const { A, b } = readMatrix();
+  let csv = A.map(row => row.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = `matriz_${state.n}x${state.n}.csv`;
+  a.click();
+}
+
+function downloadIterTable() {
+  if (!state.results) return;
+  const m = state.currentIterTable;
+  const hist = state.results[m].hist;
+  const n = state.n;
+  let csv = ['k,' + Array.from({length:n},(_,i)=>`x${i+1}`).join(',') + ',delta,err_rel'].join('\n');
+  hist.forEach(h => {
+    csv += '\n' + [h.k, ...h.x.map(v=>v.toFixed(8)), h.delta.toExponential(5), h.errRel.toExponential(5)].join(',');
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = `iteraciones_${m}.csv`;
+  a.click();
+}
+
+function clearAll() { buildGrid(); }
+function fillZeros() {
+  const n = state.n;
+  for (let i=0;i<n;i++) for(let j=0;j<n;j++) {
+    const el = document.getElementById(`a_${i}_${j}`);
+    if(el && el.value==='') el.value=0;
+  }
+  for(let i=0;i<n;i++) { const el=document.getElementById(`b_${i}`); if(el&&el.value==='')el.value=0; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   VALIDACIÓN
+══════════════════════════════════════════════════════════ */
+function validateSystem() {
+  const { A, b } = readMatrix();
+  const n = A.length;
+  const msgs = [];
+
+  // Simetría
+  let sym = true;
+  for(let i=0;i<n&&sym;i++) for(let j=0;j<n&&sym;j++)
+    if(Math.abs(A[i][j]-A[j][i])>1e-9) sym=false;
+
+  // Diagonal no nula
+  let diagOk = A.every((_,i)=>Math.abs(A[i][i])>1e-15);
+
+  // Diagonal dominante
+  let dd = A.every((_,i)=>{
+    const sum = A[i].reduce((acc,v,j)=>j===i?acc:acc+Math.abs(v),0);
+    return Math.abs(A[i][i])>=sum;
+  });
+  let ddStrict = A.every((_,i)=>{
+    const sum = A[i].reduce((acc,v,j)=>j===i?acc:acc+Math.abs(v),0);
+    return Math.abs(A[i][i])>sum;
+  });
+
+  // SPD (approx via diagonal dominance + symmetry)
+  const spd = sym && ddStrict;
+
+  let html = `<div class="alert ${diagOk?'alert-ok':'alert-error'}">
+    <b>Diagonal no nula:</b> ${diagOk?'✔ Sí':'✗ No — división por cero en GS/SOR'}</div>`;
+  html += `<div class="alert ${sym?'alert-ok':'alert-warn'}">
+    <b>Simétrica:</b> ${sym?'✔ Sí — CG aplicable':'⚠ No — CG puede no converger'}</div>`;
+  html += `<div class="alert ${ddStrict?'alert-ok':dd?'alert-warn':'alert-error'}">
+    <b>Diagonal dominante:</b> ${ddStrict?'✔ Estricta — convergencia GS/SOR garantizada':dd?'⚠ Débil — convergencia probable':'✗ No — convergencia no garantizada'}</div>`;
+  html += `<div class="alert ${spd?'alert-ok':'alert-info'}">
+    <b>SPD (approx.):</b> ${spd?'✔ Sí — todos los métodos óptimos':'ℹ Condición no verificable sin eigenvalores'}</div>`;
+
+  if (!diagOk) html += `<div class="alert alert-error">✗ Sistema inválido: hay ceros en la diagonal.</div>`;
+
+  document.getElementById('validation-output').innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOGGLES
+══════════════════════════════════════════════════════════ */
+function toggleAutoOmega() {
+  state.autoOmega = !state.autoOmega;
+  const btn = document.getElementById('auto-omega-btn');
+  btn.classList.toggle('on', state.autoOmega);
+  btn.textContent = state.autoOmega ? 'AUTO' : 'MANUAL';
+  document.getElementById('omega').disabled = state.autoOmega;
+}
+function toggleMethod(m) {
+  state.methods[m] = !state.methods[m];
+  const btn = document.getElementById(`toggle-${m}`);
+  btn.classList.toggle('on', state.methods[m]);
+  btn.textContent = state.methods[m] ? 'Activo' : 'Inactivo';
+}
+
+/* ══════════════════════════════════════════════════════════
+   ÁLGEBRA LINEAL EN JS
+══════════════════════════════════════════════════════════ */
+function matVec(A, x) {
+  return A.map(row => row.reduce((s, a, j) => s + a*x[j], 0));
+}
+function vecNorm(v) { return Math.sqrt(v.reduce((s,x)=>s+x*x,0)); }
+function vecNormInf(v) { return Math.max(...v.map(Math.abs)); }
+function vecSub(a,b) { return a.map((v,i)=>v-b[i]); }
+function vecAdd(a,b) { return a.map((v,i)=>v+b[i]); }
+function vecScale(a,s) { return a.map(v=>v*s); }
+function dot(a,b) { return a.reduce((s,v,i)=>s+v*b[i],0); }
+
+// Eliminación gaussiana para solución exacta
+function gaussianSolve(A, b) {
+  const n = A.length;
+  const M = A.map((r,i) => [...r, b[i]]);
+  for (let col=0; col<n; col++) {
+    let maxRow = col;
+    for (let row=col+1; row<n; row++)
+      if (Math.abs(M[row][col]) > Math.abs(M[maxRow][col])) maxRow = row;
+    [M[col], M[maxRow]] = [M[maxRow], M[col]];
+    const pivot = M[col][col];
+    if (Math.abs(pivot) < 1e-15) continue;
+    for (let row=0; row<n; row++) {
+      if (row === col) continue;
+      const f = M[row][col] / pivot;
+      for (let k=col; k<=n; k++) M[row][k] -= f * M[col][k];
+    }
+  }
+  return M.map((r,i) => r[n] / r[i]);
+}
+
+// Calcular omega óptimo (radio espectral de Jacobi)
+function calcOmegaOpt(A) {
+  const n = A.length;
+  // Iteramos Jacobi unos pasos y estimamos el radio espectral
+  // Método simple: power iteration en B_Jacobi = -D^{-1}(L+U)
+  let v = Array.from({length:n},()=>Math.random()-.5);
+  let norm = vecNorm(v);
+  v = v.map(x=>x/norm);
+  let lambda = 0;
+  for (let iter=0; iter<80; iter++) {
+    const Bv = v.map((_,i) => {
+      let s = 0;
+      for (let j=0;j<n;j++) if(j!==i) s += A[i][j]*v[j];
+      return -s / A[i][i];
+    });
+    const newNorm = vecNorm(Bv);
+    lambda = newNorm / vecNorm(v);
+    v = Bv.map(x=>x/newNorm);
+  }
+  const mu = Math.min(lambda, 0.9999);
+  const omega = 2 / (1 + Math.sqrt(1 - mu*mu));
+  return { omega: Math.min(Math.max(omega, 1.001), 1.999), mu };
+}
+
+/* ══════════════════════════════════════════════════════════
+   MÉTODOS ITERATIVOS
+══════════════════════════════════════════════════════════ */
+function gaussSeidel(A, b, x0, tol, maxIter, xRef) {
+  const n = A.length;
+  let x = [...x0];
+  const hist = [];
+  for (let k=1; k<=maxIter; k++) {
+    const xOld = [...x];
+    for (let i=0; i<n; i++) {
+      let s = b[i];
+      for (let j=0;j<n;j++) if(j!==i) s -= A[i][j]*x[j];
+      x[i] = s / A[i][i];
+    }
+    const delta = vecNormInf(vecSub(x, xOld));
+    const errRel = xRef ? vecNorm(vecSub(x,xRef))/vecNorm(xRef) : delta;
+    hist.push({ k, x:[...x], delta, errRel });
+    if (delta < tol) break;
+  }
+  return { x, iters: hist.length, hist, converged: hist[hist.length-1].delta < tol };
+}
+
+function sor(A, b, x0, omega, tol, maxIter, xRef) {
+  const n = A.length;
+  let x = [...x0];
+  const hist = [];
+  for (let k=1; k<=maxIter; k++) {
+    const xOld = [...x];
+    for (let i=0; i<n; i++) {
+      let s = b[i];
+      for (let j=0;j<n;j++) if(j!==i) s -= A[i][j]*x[j];
+      const xgs = s / A[i][i];
+      x[i] = (1-omega)*xOld[i] + omega*xgs;
+    }
+    const delta = vecNormInf(vecSub(x,xOld));
+    const errRel = xRef ? vecNorm(vecSub(x,xRef))/vecNorm(xRef) : delta;
+    hist.push({ k, x:[...x], delta, errRel });
+    if (delta < tol) break;
+  }
+  return { x, iters: hist.length, hist, converged: hist[hist.length-1].delta < tol };
+}
+
+function conjugateGradient(A, b, x0, tol, maxIter, xRef) {
+  const n = A.length;
+  let x = [...x0];
+  let r = vecSub(b, matVec(A, x));
+  let p = [...r];
+  let rr = dot(r, r);
+  const hist = [];
+  for (let k=1; k<=maxIter; k++) {
+    const Ap = matVec(A, p);
+    const pAp = dot(p, Ap);
+    if (Math.abs(pAp) < 1e-20) break;
+    const alpha = rr / pAp;
+    x = vecAdd(x, vecScale(p, alpha));
+    r = vecSub(r, vecScale(Ap, alpha));
+    const rrNew = dot(r, r);
+    const beta = rrNew / rr;
+    p = vecAdd(r, vecScale(p, beta));
+    rr = rrNew;
+    const normR = Math.sqrt(rrNew);
+    const errRel = xRef ? vecNorm(vecSub(x,xRef))/vecNorm(xRef) : normR;
+    hist.push({ k, x:[...x], delta: normR, errRel, alpha, beta });
+    if (normR < tol) break;
+  }
+  return { x, iters: hist.length, hist, converged: hist[hist.length-1]?.delta < tol };
+}
+
+/* ══════════════════════════════════════════════════════════
+   EJECUTAR TODO
+══════════════════════════════════════════════════════════ */
+function runAll() {
+  const { A, b } = readMatrix();
+  state.A = A; state.b = b;
+  const n = A.length;
+
+  const tol     = parseFloat(document.getElementById('tol').value) || 1e-8;
+  const maxIter = parseInt(document.getElementById('max-iter').value) || 500;
+  let omega     = parseFloat(document.getElementById('omega').value) || 1.25;
+
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('status-msg').innerHTML = '<span class="spinner"></span> Calculando...';
+  document.getElementById('progress-fill').style.width = '20%';
+
+  setTimeout(() => {
+    // Punto inicial
+    const x0mode = document.getElementById('x0-mode').value;
+    let x0;
+    if (x0mode==='ones') x0 = Array(n).fill(1);
+    else if (x0mode==='random') x0 = Array.from({length:n},()=>Math.random()-.5);
+    else x0 = Array(n).fill(0);
+
+    // Omega automático
+    let mu = null;
+    if (state.autoOmega) {
+      const res = calcOmegaOpt(A);
+      omega = res.omega;
+      mu = res.mu;
+      document.getElementById('omega').value = omega.toFixed(6);
+    }
+
+    document.getElementById('progress-fill').style.width = '40%';
+
+    // Solución exacta
+    let xExact = null;
+    if (state.methods.exact) {
+      try { xExact = gaussianSolve(A, b); } catch(e) {}
+    }
+
+    document.getElementById('progress-fill').style.width = '60%';
+
+    const results = { xExact, omega, mu };
+
+    if (state.methods.gs)
+      results.gs  = gaussSeidel(A, b, [...x0], tol, maxIter, xExact);
+    if (state.methods.sor)
+      results.sor = sor(A, b, [...x0], omega, tol, maxIter, xExact);
+    if (state.methods.cg)
+      results.cg  = conjugateGradient(A, b, [...x0], tol, maxIter, xExact);
+
+    document.getElementById('progress-fill').style.width = '90%';
+
+    state.results = results;
+    renderAll(results, n);
+
+    document.getElementById('progress-fill').style.width = '100%';
+    document.getElementById('run-btn').disabled = false;
+    document.getElementById('status-msg').innerHTML =
+      `✔ Completado — GS: ${results.gs?.iters||'—'} iters · SOR: ${results.sor?.iters||'—'} · CG: ${results.cg?.iters||'—'}`;
+
+    showSection('resultados');
+  }, 50);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDERIZADO DE RESULTADOS
+══════════════════════════════════════════════════════════ */
+function renderAll(r, n) {
+  renderStatCards(r);
+  renderSolTable(r, n);
+  renderConvPlots(r);
+  renderIterTables(r, n);
+  renderComparativa(r);
+
+  document.getElementById('results-placeholder').style.display = 'none';
+  document.getElementById('results-content').style.display = 'block';
+  document.getElementById('conv-placeholder').style.display = 'none';
+  document.getElementById('conv-content').style.display = 'block';
+  document.getElementById('iter-placeholder').style.display = 'none';
+  document.getElementById('iter-content').style.display = 'block';
+  document.getElementById('cmp-placeholder').style.display = 'none';
+  document.getElementById('cmp-content').style.display = 'block';
+}
+
+function renderStatCards(r) {
+  const active = Object.entries({gs:r.gs, sor:r.sor, cg:r.cg}).filter(([,v])=>v);
+  const minIters = Math.min(...active.map(([,v])=>v.iters));
+  const LABELS = { gs:'Gauss-Seidel', sor:`SOR (ω=${parseFloat(r.omega).toFixed(3)})`, cg:'Gradiente Conjugado' };
+
+  const el = document.getElementById('stat-cards');
+  el.innerHTML = active.map(([m, v]) => `
+    <div class="stat-card ${m}">
+      <div class="stat-label">${LABELS[m]}</div>
+      <div class="stat-iters">${v.iters}</div>
+      <div style="font-family:var(--font-mono);font-size:.7rem;color:var(--text3);margin-top:.2rem">iteraciones</div>
+      <div class="stat-err">err: ${v.hist[v.hist.length-1].errRel.toExponential(3)}</div>
+      ${v.iters===minIters?'<div class="winner-badge">⚡ MÁS RÁPIDO</div>':''}
+      ${!v.converged?'<div class="winner-badge" style="background:var(--danger)">⚠ NO CONVERGIÓ</div>':''}
+    </div>
+  `).join('');
+}
+
+function renderSolTable(r, n) {
+  const active = Object.entries({gs:r.gs, sor:r.sor, cg:r.cg}).filter(([,v])=>v);
+  const head = document.getElementById('sol-head');
+  const body = document.getElementById('sol-body');
+  const CLS = {gs:'var(--gs)',sor:'var(--sor)',cg:'var(--cg)'};
+  const LBL = {gs:'Gauss-Seidel',sor:'SOR',cg:'Grad. Conj.'};
+
+  head.innerHTML = `<th>Var.</th>` +
+    active.map(([m])=>`<th style="color:${CLS[m]}">${LBL[m]}</th>`).join('') +
+    (r.xExact?'<th style="color:var(--accent4)">Exacta</th>':'');
+
+  body.innerHTML = Array.from({length:n},(_,i) => `
+    <tr>
+      <td>x<sub>${i+1}</sub></td>
+      ${active.map(([,v])=>`<td>${v.x[i].toFixed(8)}</td>`).join('')}
+      ${r.xExact?`<td style="color:var(--accent4)">${r.xExact[i].toFixed(8)}</td>`:''}
+    </tr>
+  `).join('');
+}
+
+/* ══════════════════════════════════════════════════════════
+   PLOTLY — GRÁFICAS ANIMADAS
+══════════════════════════════════════════════════════════ */
+const PLOTLY_CFG = {
+  responsive: true,
+  displayModeBar: true,
+  modeBarButtonsToRemove: ['select2d','lasso2d'],
+  displaylogo: false
+};
+
+const PLOTLY_LAYOUT_BASE = {
+  paper_bgcolor: '#151d2e',
+  plot_bgcolor:  '#111827',
+  font: { family: 'JetBrains Mono, monospace', color: '#94a3b8', size: 11 },
+  xaxis: {
+    gridcolor: '#1e2d45', zerolinecolor: '#1e2d45',
+    color: '#64748b', title_font: {color:'#94a3b8'}
+  },
+  yaxis: {
+    gridcolor: '#1e2d45', zerolinecolor: '#1e2d45',
+    color: '#64748b', title_font: {color:'#94a3b8'}
+  },
+  legend: { bgcolor: 'rgba(10,14,26,.8)', bordercolor: '#1e2d45', borderwidth: 1 },
+  margin: { l:60, r:20, t:30, b:50 },
+};
+
+function renderConvPlots(r) {
+  const COLORS = { gs:'#3b82f6', sor:'#10b981', cg:'#8b5cf6' };
+  const LABELS = { gs:'Gauss-Seidel', sor:`SOR (ω=${parseFloat(r.omega).toFixed(3)})`, cg:'Gradiente Conjugado' };
+  const active = Object.entries({gs:r.gs,sor:r.sor,cg:r.cg}).filter(([,v])=>v);
+
+  // ── Plot 1: Error relativo animado ──────────────────────────────────────
+  const maxIters = Math.max(...active.map(([,v])=>v.iters));
+  const frames = [];
+  const STEP = Math.max(1, Math.floor(maxIters/60));  // ~60 frames máx
+
+  for (let f=1; f<=maxIters; f+=STEP) {
+    const traces = active.map(([m,v]) => {
+      const pts = v.hist.filter(h=>h.k<=f);
+      return {
+        x: pts.map(h=>h.k), y: pts.map(h=>h.errRel),
+        name: LABELS[m], mode:'lines+markers',
+        line:{color:COLORS[m],width:2},
+        marker:{size:4,color:COLORS[m]},
+        type:'scatter'
+      };
+    });
+    frames.push({ name:String(f), data: traces });
+  }
+
+  // Traza inicial (frame 1)
+  const initTraces = active.map(([m,v]) => ({
+    x:[v.hist[0].k], y:[v.hist[0].errRel],
+    name:LABELS[m], mode:'lines+markers',
+    line:{color:COLORS[m],width:2.5},
+    marker:{size:5,color:COLORS[m]},
+    type:'scatter'
+  }));
+
+  const tol = parseFloat(document.getElementById('tol').value)||1e-8;
+  const layout1 = {
+    ...PLOTLY_LAYOUT_BASE,
+    xaxis: {...PLOTLY_LAYOUT_BASE.xaxis, title:'Iteración k'},
+    yaxis: {...PLOTLY_LAYOUT_BASE.yaxis, title:'Error relativo', type:'log',
+            tickformat:'.0e'},
+    shapes: [{
+      type:'line', x0:0, x1:maxIters, y0:tol, y1:tol,
+      line:{color:'#f59e0b',width:1.2,dash:'dot'}
+    }],
+    annotations: [{
+      x:maxIters*.05, y:Math.log10(tol)*1.03, xref:'x', yref:'y',
+      text:`tol=${tol.toExponential(0)}`,
+      font:{color:'#f59e0b',size:10}, showarrow:false
+    }],
+    updatemenus: [{
+      type:'buttons', showactive:false,
+      x:0, y:-0.15, xanchor:'left',
+      buttons:[
+        {label:'▶ Animar', method:'animate',
+         args:[null,{fromcurrent:true,frame:{duration:80,redraw:true},
+                     transition:{duration:0},mode:'immediate'}]},
+        {label:'⏸ Pausar', method:'animate',
+         args:[[null],{mode:'immediate',frame:{duration:0}}]}
+      ],
+      font:{family:'JetBrains Mono',size:11},
+      bgcolor:'#1a2235', bordercolor:'#1e2d45',
+      borderwidth:1, pad:{t:5}
+    }],
+    sliders:[{
+      steps: frames.map(f=>({method:'animate',label:f.name,
+                              args:[[f.name],{mode:'immediate',frame:{duration:0}}]})),
+      x:0, y:-.08, len:1,
+      currentvalue:{prefix:'Iter: ',font:{color:'#94a3b8',size:11}},
+      font:{color:'#64748b',size:10},
+      bgcolor:'#1a2235', bordercolor:'#1e2d45',
+      activebgcolor:'#3b82f6'
+    }]
+  };
+
+  Plotly.newPlot('plot-conv', initTraces, layout1, PLOTLY_CFG)
+    .then(() => Plotly.addFrames('plot-conv', frames));
+
+  // ── Plot 2: Delta ────────────────────────────────────────────────────────
+  const deltaTraces = active.map(([m,v]) => ({
+    x: v.hist.map(h=>h.k), y: v.hist.map(h=>h.delta),
+    name: LABELS[m], mode:'lines',
+    line:{color:COLORS[m],width:2}, type:'scatter'
+  }));
+  Plotly.newPlot('plot-delta', deltaTraces, {
+    ...PLOTLY_LAYOUT_BASE,
+    xaxis:{...PLOTLY_LAYOUT_BASE.xaxis,title:'Iteración k'},
+    yaxis:{...PLOTLY_LAYOUT_BASE.yaxis,title:'‖Δx‖∞',type:'log',tickformat:'.0e'},
+  }, PLOTLY_CFG);
+
+  // ── Plot 3: Factor de reducción ──────────────────────────────────────────
+  const factorTraces = active.map(([m,v]) => {
+    const facs = v.hist.slice(1).map((h,i)=>
+      v.hist[i].errRel>0 ? h.errRel/v.hist[i].errRel : null).filter(f=>f&&f>0);
+    return {
+      x: Array.from({length:facs.length},(_,i)=>i+2),
+      y: facs, name: LABELS[m], mode:'lines+markers',
+      line:{color:COLORS[m],width:2,dash:'dot'},
+      marker:{size:3}, type:'scatter'
+    };
+  });
+  Plotly.newPlot('plot-factor', factorTraces, {
+    ...PLOTLY_LAYOUT_BASE,
+    xaxis:{...PLOTLY_LAYOUT_BASE.xaxis,title:'Iteración k'},
+    yaxis:{...PLOTLY_LAYOUT_BASE.yaxis,title:'Factor de reducción'},
+  }, PLOTLY_CFG);
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABLAS DE ITERACIONES
+══════════════════════════════════════════════════════════ */
+function renderIterTables(r, n) {
+  // Pre-renderizar las tres tablas en memoria
+  state._iterHTML = {};
+  const methods = [['gs',r.gs,'var(--gs)'],['sor',r.sor,'var(--sor)'],['cg',r.cg,'var(--cg)']];
+  methods.forEach(([m, v, color]) => {
+    if (!v) { state._iterHTML[m] = '<div class="alert alert-warn">Método no ejecutado.</div>'; return; }
+    const MAX_ROWS = 200;
+    const hist = v.hist.slice(0, MAX_ROWS);
+    const showAll = v.hist.length <= MAX_ROWS;
+    const isCG = m === 'cg';
+
+    let head = `<th>k</th>` + Array.from({length:n},(_,i)=>`<th>x<sub>${i+1}</sub></th>`).join('') +
+      `<th>‖Δx‖∞</th><th>Err. rel.</th>` +
+      (isCG ? `<th>αₖ</th><th>βₖ</th>` : '');
+
+    let rows = hist.map(h => {
+      const isLast = h.k === v.iters;
+      return `<tr class="${isLast?'conv-row':''}">
+        <td>${h.k}</td>
+        ${h.x.map(xi=>`<td>${xi.toFixed(6)}</td>`).join('')}
+        <td>${h.delta.toExponential(4)}</td>
+        <td>${h.errRel.toExponential(4)}</td>
+        ${isCG?`<td>${h.alpha?.toExponential(4)||'—'}</td><td>${h.beta?.toExponential(4)||'—'}</td>`:''}
+      </tr>`;
+    }).join('');
+
+    if (!showAll) rows += `<tr><td colspan="${n+2+(isCG?2:0)}" style="text-align:center;color:var(--text3);padding:.6rem">
+      … mostrando primeras ${MAX_ROWS} de ${v.hist.length} iteraciones …</td></tr>`;
+
+    state._iterHTML[m] = { head, rows, title:`${m.toUpperCase()} — ${v.iters} iteraciones — converged: ${v.converged}` };
+  });
+
+  showIterTable('gs');
+}
+
+function showIterTable(m) {
+  state.currentIterTable = m;
+  ['gs','sor','cg'].forEach(k => {
+    const btn = document.getElementById(`tbt-${k}`);
+    btn.classList.toggle('active', k===m);
+    ['gs','sor','cg'].forEach(c => btn.classList.remove(c));
+    if(k===m) { btn.classList.add('active'); btn.classList.add(m); }
+  });
+
+  const data = state._iterHTML?.[m];
+  if (!data || typeof data === 'string') {
+    document.getElementById('iter-head').innerHTML = '';
+    document.getElementById('iter-body').innerHTML = data || '';
+    document.getElementById('iter-table-title').textContent = '';
+    return;
+  }
+  document.getElementById('iter-head').innerHTML = data.head;
+  document.getElementById('iter-body').innerHTML = data.rows;
+  document.getElementById('iter-table-title').textContent = data.title;
+}
+
+/* ══════════════════════════════════════════════════════════
+   COMPARATIVA
+══════════════════════════════════════════════════════════ */
+function renderComparativa(r) {
+  // Plot comparativo
+  const COLORS = {gs:'#3b82f6',sor:'#10b981',cg:'#8b5cf6'};
+  const LABELS = {gs:'Gauss-Seidel',sor:`SOR (ω=${parseFloat(r.omega).toFixed(3)})`,cg:'Gradiente Conjugado'};
+  const active = Object.entries({gs:r.gs,sor:r.sor,cg:r.cg}).filter(([,v])=>v);
+
+  const cmpTraces = active.map(([m,v]) => ({
+    x:v.hist.map(h=>h.k), y:v.hist.map(h=>h.errRel),
+    name:LABELS[m], mode:'lines', fill:'tozeroy',
+    fillcolor:COLORS[m]+'18',
+    line:{color:COLORS[m],width:2.5}, type:'scatter'
+  }));
+  Plotly.newPlot('plot-cmp', cmpTraces, {
+    ...PLOTLY_LAYOUT_BASE,
+    xaxis:{...PLOTLY_LAYOUT_BASE.xaxis,title:'Iteración k'},
+    yaxis:{...PLOTLY_LAYOUT_BASE.yaxis,title:'Error relativo',type:'log',tickformat:'.0e'},
+  }, PLOTLY_CFG);
+
+  // Tabla comparativa
+  const rows = [];
+  const iterVals = active.map(([,v])=>v.iters);
+  const minI = Math.min(...iterVals), maxI = Math.max(...iterVals);
+  const errVals = active.map(([,v])=>v.hist[v.hist.length-1].errRel);
+  const minE = Math.min(...errVals), maxE = Math.max(...errVals);
+
+  const fmt = (val, best, worst) =>
+    `<span class="${val===best?'best':val===worst?'worst':''}">${val}</span>`;
+  const fmtE = (val, best, worst) =>
+    `<span class="${val===best?'best':val===worst?'worst':''}">${val.toExponential(4)}</span>`;
+
+  const gsV=r.gs,sorV=r.sor,cgV=r.cg;
+  const allV=[gsV,sorV,cgV].filter(Boolean);
+
+  function fmtRow(label, fn, fmtFn=fmt) {
+    const vals = allV.map(fn);
+    const best = Math.min(...vals), worst = Math.max(...vals);
+    return `<tr><td>${label}</td>
+      ${gsV?`<td>${fmtFn(fn(gsV),best,worst)}</td>`:''}
+      ${sorV?`<td>${fmtFn(fn(sorV),best,worst)}</td>`:''}
+      ${cgV?`<td>${fmtFn(fn(cgV),best,worst)}</td>`:''}
+    </tr>`;
+  }
+
+  document.getElementById('cmp-body').innerHTML =
+    fmtRow('Iteraciones hasta convergencia', v=>v.iters) +
+    fmtRow('Error relativo final', v=>v.hist[v.hist.length-1].errRel, fmtE) +
+    fmtRow('Error absoluto ‖ΔV‖∞ final', v=>v.hist[v.hist.length-1].delta, fmtE) +
+    `<tr><td>Convergió</td>
+      ${gsV?`<td class="${gsV.converged?'best':'worst'}">${gsV.converged?'✔ Sí':'✗ No'}</td>`:''}
+      ${sorV?`<td class="${sorV.converged?'best':'worst'}">${sorV.converged?'✔ Sí':'✗ No'}</td>`:''}
+      ${cgV?`<td class="${cgV.converged?'best':'worst'}">${cgV.converged?'✔ Sí':'✗ No'}</td>`:''}
+    </tr>` +
+    fmtRow('Error en primera iteración', v=>v.hist[0].errRel, fmtE);
+
+  // Análisis de texto
+  const winner = active.sort((a,b)=>a[1].iters-b[1].iters)[0];
+  const LABELS_FULL={gs:'Gauss-Seidel',sor:'SOR',cg:'Gradiente Conjugado'};
+  let html = `<div class="info-box">
+    <p>🏆 <strong>Método más eficiente:</strong> <span style="color:var(--accent4)">${LABELS_FULL[winner[0]]}</span>
+       con <strong>${winner[1].iters} iteraciones</strong>.</p>`;
+
+  if (r.gs && r.sor) {
+    const ratio = (r.gs.iters / r.sor.iters).toFixed(1);
+    html += `<p>📊 SOR redujo las iteraciones de GS en un factor de <code>${ratio}×</code>
+      gracias al parámetro <code>ω = ${parseFloat(r.omega).toFixed(4)}</code>
+      ${r.mu?`(μ_Jacobi = ${r.mu.toFixed(4)})`:''}.`;
+    html += ` La tasa de convergencia teórica de GS es O(κ) mientras que SOR alcanza O(√κ) con ω óptimo.</p>`;
+  }
+  if (r.cg) {
+    html += `<p>⚡ El Gradiente Conjugado convergió en <code>${r.cg.iters}</code> iteraciones.
+      Para sistemas SPD, CG garantiza convergencia en ≤ n pasos en aritmética exacta
+      y su cota de error depende de <code>√κ</code> en lugar de <code>κ</code>.</p>`;
+  }
+  html += `<p style="color:var(--text3);font-size:.8rem">
+    ✦ Verde = mejor valor &nbsp;·&nbsp; Rojo = peor valor</p></div>`;
+  document.getElementById('analysis-text').innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════
+   DRAG & DROP
+══════════════════════════════════════════════════════════ */
+['drop-matrix','drop-vector'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const isMatrix = id === 'drop-matrix';
+    const fakeInput = { files:[file] };
+    if (isMatrix) loadCSVMatrix(fakeInput);
+    else loadCSVVector(fakeInput);
+  });
+});
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  loadExample();
+});
+</script>
+</body>
+</html>
